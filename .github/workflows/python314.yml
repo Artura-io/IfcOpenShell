@@ -1,29 +1,79 @@
-name: Build IfcOpenShell for Python 3.14
+name: Build IfcOpenShell for Python 3.14 (with cached OCCT)
 
 on:
+  workflow_dispatch:
   push:
     tags:
       - "v*"
-  workflow_dispatch:
+
+env:
+  CMAKE_BUILD_TYPE: Release
+  OCCT_VERSION: 7.8.1
 
 jobs:
-  build:
+  build-linux:
+    name: Build IfcOpenShell (Linux, Python 3.14)
     runs-on: ubuntu-latest
     container:
       image: python:3.14-slim
 
+    permissions:
+      contents: write
+      packages: write
+
     steps:
-      - uses: actions/checkout@v4
-      - run: |
-          apt-get update
-          apt-get install -y cmake g++ make swig libocct-dev libgl1-mesa-dev libglu1-mesa-dev
-      - name: Build
+      - name: Install dependencies
         run: |
+          apt-get update
+          apt-get install -y git cmake g++ make swig python3-dev unzip wget ninja-build \
+            libxmu-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev freeglut3-dev \
+            tcl-dev tk-dev libfreetype6-dev libx11-dev libxt-dev
+          python -m pip install --upgrade pip setuptools wheel build
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Download prebuilt OCCT from GitHub Release
+        run: |
+          mkdir -p /tmp
+          wget -q https://github.com/${{ github.repository }}/releases/download/${OCCT_VERSION}/occt-${OCCT_VERSION}-linux64.tar.gz -O /tmp/occt-${OCCT_VERSION}-linux64.tar.gz
+          tar -xzf /tmp/occt-${OCCT_VERSION}-linux64.tar.gz -C /usr/local
+          echo "/usr/local/occt/lib" >> /etc/ld.so.conf.d/occt.conf
+          ldconfig
+          ls /usr/local/occt/lib || true
+
+      - name: Build IfcOpenShell C++ core and Python module
+        run: |
+          mkdir -p build
+          cd build
+          cmake ../cmake \
+            -G Ninja \
+            -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} \
+            -DOCC_INCLUDE_DIR=/usr/local/occt/include/opencascade \
+            -DOCC_LIBRARY_DIR=/usr/local/occt/lib \
+            -DPYTHON_EXECUTABLE=$(which python3) \
+            -DIFCOPENSHELL_WITH_PYTHON=ON
+          ninja -j$(nproc)
+          cd ..
+
+          # Copy compiled wrapper into Python package
+          cp build/ifcopenshell-python/ifcopenshell/_ifcopenshell_wrapper*.so src/ifcopenshell-python/ifcopenshell/ || true
+
+          # Build Python wheel
           cd src/ifcopenshell-python
-          pip install build
           python -m build
-      - uses: softprops/action-gh-release@v2
+
+      - name: Show build output
+        run: ls -lh src/ifcopenshell-python/dist
+
+      - name: Upload .whl to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
         with:
           files: src/ifcopenshell-python/dist/*.whl
+          generate_release_notes: true
+          make_latest: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
