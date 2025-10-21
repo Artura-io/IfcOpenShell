@@ -27,7 +27,8 @@ jobs:
           apt-get update
           apt-get install -y git cmake g++ make swig python3-dev unzip wget ninja-build \
             libxmu-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev freeglut3-dev \
-            tcl-dev tk-dev libfreetype6-dev libx11-dev libxt-dev
+            tcl-dev tk-dev libfreetype6-dev libx11-dev libxt-dev \
+            libcgal-dev libcgal-qt5-dev
           python -m pip install --upgrade pip setuptools wheel build
 
       - name: Checkout repository
