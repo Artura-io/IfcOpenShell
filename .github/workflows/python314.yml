@@ -18,6 +18,11 @@ jobs:
       image: python:3.14-slim
 
     steps:
+      - name: Install git (needed for checkout with submodules)
+        run: |
+          apt-get update
+          apt-get install -y git
+
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
@@ -26,7 +31,7 @@ jobs:
       - name: Install base dependencies
         run: |
           apt-get update
-          apt-get install -y git cmake g++ make swig python3-dev \
+          apt-get install -y cmake g++ make swig python3-dev \
             libxmu-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev freeglut3-dev
           python -m pip install --upgrade pip setuptools wheel build
 
