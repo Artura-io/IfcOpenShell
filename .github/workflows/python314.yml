@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
 
     container:
-      image: ghcr.io/cmake-wizard/occt:7.7.0
+      image: python:3.14-slim
 
     steps:
       - name: Checkout repository
@@ -23,16 +23,32 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.14"
-
-      - name: Install build dependencies
+      - name: Install base dependencies
         run: |
           apt-get update
-          apt-get install -y swig python3-dev python3-pip
-          python -m pip install --upgrade pip build setuptools wheel
+          apt-get install -y git cmake g++ make swig python3-dev \
+            libxmu-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev freeglut3-dev
+          python -m pip install --upgrade pip setuptools wheel build
+
+      - name: Cache OpenCascade (OCCT)
+        uses: actions/cache@v4
+        with:
+          path: /usr/local/occt
+          key: occt-7.7.0-linux
+
+      - name: Build and install OpenCascade (OCCT)
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          git clone --depth 1 https://git.dev.opencascade.org/repos/occt.git /tmp/occt
+          cd /tmp/occt
+          cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local/occt .
+          make -j$(nproc)
+          make install
+
+      - name: Set environment variables for OCCT
+        run: |
+          echo "/usr/local/occt/lib" >> /etc/ld.so.conf.d/occt.conf
+          ldconfig
 
       - name: Build IfcOpenShell wheel
         run: |
