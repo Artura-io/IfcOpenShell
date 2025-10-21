@@ -17,6 +17,10 @@ jobs:
     container:
       image: python:3.14-slim
 
+    permissions:
+      contents: write
+      packages: write
+
     steps:
       - name: Install dependencies
         run: |
