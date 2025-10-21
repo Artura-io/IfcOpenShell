@@ -15,7 +15,9 @@ jobs:
     steps:
       - name: Install build dependencies
         run: |
+          export DEBIAN_FRONTEND=noninteractive
           apt-get update
+          apt-get install -y tzdata
           apt-get install -y git cmake make g++ freeglut3-dev libxmu-dev libxi-dev \
             libfreetype6-dev libx11-dev libxt-dev tcl-dev tk-dev zip
 
