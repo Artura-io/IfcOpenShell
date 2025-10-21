@@ -8,7 +8,6 @@ on:
 
 env:
   CMAKE_BUILD_TYPE: Release
-  PYTHON_VERSION: "3.14"
 
 jobs:
   build-linux:
@@ -16,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
 
     container:
-      image: ifcopenshell/ifcopenshell-build:latest
+      image: ghcr.io/cmake-wizard/occt:7.7.0
 
     steps:
       - name: Checkout repository
@@ -29,8 +28,10 @@ jobs:
         with:
           python-version: "3.14"
 
-      - name: Install Python build tools
+      - name: Install build dependencies
         run: |
+          apt-get update
+          apt-get install -y swig python3-dev python3-pip
           python -m pip install --upgrade pip build setuptools wheel
 
       - name: Build IfcOpenShell wheel
