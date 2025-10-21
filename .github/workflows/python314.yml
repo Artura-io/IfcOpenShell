@@ -1,0 +1,29 @@
+name: Build IfcOpenShell for Python 3.14
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: python:3.14-slim
+
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          apt-get update
+          apt-get install -y cmake g++ make swig libocct-dev libgl1-mesa-dev libglu1-mesa-dev
+      - name: Build
+        run: |
+          cd src/ifcopenshell-python
+          pip install build
+          python -m build
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: src/ifcopenshell-python/dist/*.whl
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
