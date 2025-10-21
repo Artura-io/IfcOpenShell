@@ -1,0 +1,24 @@
+name: 🧪 Fake Build OCCT Artifact Test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  fake-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Create fake OCCT directory
+        run: |
+          mkdir -p /usr/local/occt/lib
+          echo "This is a fake OCCT library" > /usr/local/occt/lib/libTKFake.so
+          echo "Build time: $(date)" > /usr/local/occt/BUILD_INFO.txt
+          tar -czf /tmp/occt-7.8.1-linux64.tar.gz -C /usr/local occt
+          ls -l /tmp
+
+      - name: Upload fake OCCT artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: occt-7.8.1-linux64
+          path: /tmp/occt-7.8.1-linux64.tar.gz
+          retention-days: 3
