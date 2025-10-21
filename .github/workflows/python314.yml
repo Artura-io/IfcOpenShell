@@ -31,29 +31,38 @@ jobs:
       - name: Install base dependencies
         run: |
           apt-get update
-          apt-get install -y cmake g++ make swig python3-dev \
-            libxmu-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev freeglut3-dev
+          apt-get install -y \
+            cmake g++ make swig python3-dev \
+            libxmu-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev freeglut3-dev \
+            tcl-dev tk-dev libfreetype6-dev libx11-dev libxt-dev
           python -m pip install --upgrade pip setuptools wheel build
 
       - name: Cache OpenCascade (OCCT)
+        id: cache-occt
         uses: actions/cache@v4
         with:
           path: /usr/local/occt
           key: occt-7.7.0-linux
 
       - name: Build and install OpenCascade (OCCT)
-        if: steps.cache.outputs.cache-hit != 'true'
+        if: steps.cache-occt.outputs.cache-hit != 'true'
         run: |
           git clone --depth 1 https://git.dev.opencascade.org/repos/occt.git /tmp/occt
           cd /tmp/occt
-          cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local/occt .
+          cmake -DCMAKE_BUILD_TYPE=Release \
+                -DCMAKE_INSTALL_PREFIX=/usr/local/occt \
+                -DBUILD_MODULE_Draw=OFF \
+                -DBUILD_MODULE_TKIVtk=OFF \
+                -DBUILD_MODULE_TKIVtkDraw=OFF \
+                .
           make -j$(nproc)
           make install
 
-      - name: Set environment variables for OCCT
+      - name: Verify OCCT installation
         run: |
           echo "/usr/local/occt/lib" >> /etc/ld.so.conf.d/occt.conf
           ldconfig
+          ls /usr/local/occt/lib | head
 
       - name: Build IfcOpenShell wheel
         run: |
