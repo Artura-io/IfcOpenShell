@@ -6,24 +6,46 @@ on:
       - "v*"
   workflow_dispatch:
 
+env:
+  CMAKE_BUILD_TYPE: Release
+  PYTHON_VERSION: "3.14"
+
 jobs:
-  build:
+  build-linux:
+    name: Build Python ${{ env.PYTHON_VERSION }} wheel (Linux)
     runs-on: ubuntu-latest
+
     container:
-      image: python:3.14-slim
+      image: ifcopenshell/ifcopenshell-build:latest
 
     steps:
-      - uses: actions/checkout@v4
-      - run: |
-          apt-get update
-          apt-get install -y cmake g++ make swig libocct-dev libgl1-mesa-dev libglu1-mesa-dev
-      - name: Build
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install Python build tools
+        run: |
+          python -m pip install --upgrade pip build setuptools wheel
+
+      - name: Build IfcOpenShell wheel
         run: |
           cd src/ifcopenshell-python
-          pip install build
           python -m build
-      - uses: softprops/action-gh-release@v2
+
+      - name: Show build output
+        run: ls -l src/ifcopenshell-python/dist
+
+      - name: Upload .whl to release
+        uses: softprops/action-gh-release@v2
         with:
           files: src/ifcopenshell-python/dist/*.whl
+          generate_release_notes: true
+          make_latest: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
