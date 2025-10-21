@@ -25,11 +25,16 @@ jobs:
       - name: Install dependencies
         run: |
           apt-get update
-          apt-get install -y git cmake g++ make swig python3-dev unzip wget ninja-build \
-            libxmu-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev freeglut3-dev \
+          apt-get install -y \
+            git cmake g++ make swig python3-dev unzip wget ninja-build \
             tcl-dev tk-dev libfreetype6-dev libx11-dev libxt-dev \
-            libcgal-dev libcgal-qt6-dev
-          python -m pip install --upgrade pip setuptools wheel build
+            libxmu-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev freeglut3-dev \
+            libcgal-dev libcgal-qt6-dev \
+            libboost-dev libboost-regex-dev libboost-filesystem-dev \
+            libboost-system-dev libboost-thread-dev libboost-program-options-dev \
+            libxml2-dev libhdf5-dev libtbb-dev libeigen3-dev \
+            zlib1g-dev libssl-dev librocksdb-dev libzstd-dev
+          python -m pip install --upgrade pip setuptools wheel build numpy
 
       - name: Checkout repository
         uses: actions/checkout@v4
