@@ -17,13 +17,15 @@ jobs:
         run: |
           export DEBIAN_FRONTEND=noninteractive
           apt-get update
-          apt-get install -y tzdata
-          apt-get install -y git cmake make g++ freeglut3-dev libxmu-dev libxi-dev \
-            libfreetype6-dev libx11-dev libxt-dev tcl-dev tk-dev zip
+          apt-get install -y \
+            git cmake make g++ freeglut3-dev libxmu-dev libxi-dev \
+            libfreetype6-dev libx11-dev libxt-dev tcl-dev tk-dev zip \
+            tzdata
 
       - name: Checkout OCCT sources
         run: |
-          git clone --branch V${OCCT_VERSION//./_} --depth 1 https://github.com/Open-Cascade-SAS/OCCT.git /tmp/occt
+          BRANCH="V$(echo ${OCCT_VERSION} | tr . _)"
+          git clone --branch "$BRANCH" --depth 1 https://github.com/Open-Cascade-SAS/OCCT.git /tmp/occt
 
       - name: Build OCCT
         run: |
