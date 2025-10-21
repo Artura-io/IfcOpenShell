@@ -1,68 +1,49 @@
-name: Build IfcOpenShell for Python 3.14
+name: Build IfcOpenShell for Python 3.14 (with cached OCCT)
 
 on:
+  workflow_dispatch:
   push:
     tags:
       - "v*"
-  workflow_dispatch:
 
 env:
   CMAKE_BUILD_TYPE: Release
+  OCCT_VERSION: 7.8.1
 
 jobs:
   build-linux:
     name: Build IfcOpenShell (Linux, Python 3.14)
     runs-on: ubuntu-latest
-
     container:
       image: python:3.14-slim
 
     steps:
-      - name: Install git (needed for checkout with submodules)
+      - name: Install dependencies
         run: |
           apt-get update
-          apt-get install -y git
+          apt-get install -y git cmake g++ make swig python3-dev unzip \
+            libxmu-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev freeglut3-dev \
+            tcl-dev tk-dev libfreetype6-dev libx11-dev libxt-dev
+          python -m pip install --upgrade pip setuptools wheel build
 
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      - name: Install base dependencies
-        run: |
-          apt-get update
-          apt-get install -y \
-            cmake g++ make swig python3-dev \
-            libxmu-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev freeglut3-dev \
-            tcl-dev tk-dev libfreetype6-dev libx11-dev libxt-dev
-          python -m pip install --upgrade pip setuptools wheel build
-
-      - name: Cache OpenCascade (OCCT)
-        id: cache-occt
-        uses: actions/cache@v4
+      - name: Download prebuilt OCCT artifact
+        uses: actions/download-artifact@v4
         with:
-          path: /usr/local/occt
-          key: occt-7.7.0-linux
+          name: occt-7.8.1-linux64
+          path: /tmp
 
-      - name: Build and install OpenCascade (OCCT)
-        if: steps.cache-occt.outputs.cache-hit != 'true'
+      - name: Extract OCCT
         run: |
-          git clone --depth 1 https://git.dev.opencascade.org/repos/occt.git /tmp/occt
-          cd /tmp/occt
-          cmake -DCMAKE_BUILD_TYPE=Release \
-                -DCMAKE_INSTALL_PREFIX=/usr/local/occt \
-                -DBUILD_MODULE_Draw=OFF \
-                -DBUILD_MODULE_TKIVtk=OFF \
-                -DBUILD_MODULE_TKIVtkDraw=OFF \
-                .
-          make -j$(nproc)
-          make install
-
-      - name: Verify OCCT installation
-        run: |
+          mkdir -p /usr/local/occt
+          tar -xzf /tmp/occt-7.8.1-linux64.tar.gz -C /usr/local
           echo "/usr/local/occt/lib" >> /etc/ld.so.conf.d/occt.conf
           ldconfig
-          ls /usr/local/occt/lib | head
+          ls /usr/local/occt/lib || true
 
       - name: Build IfcOpenShell wheel
         run: |
@@ -72,7 +53,8 @@ jobs:
       - name: Show build output
         run: ls -l src/ifcopenshell-python/dist
 
-      - name: Upload .whl to release
+      - name: Upload .whl to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           files: src/ifcopenshell-python/dist/*.whl
