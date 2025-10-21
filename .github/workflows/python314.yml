@@ -1,4 +1,4 @@
-name: Build IfcOpenShell for Python 3.14 (with cached OCCT)
+name: Build IfcOpenShell for Python 3.14 (with cached OCCT,)
 
 on:
   workflow_dispatch:
