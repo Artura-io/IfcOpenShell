@@ -6,16 +6,12 @@ on:
     tags:
       - "v*"
 
-env:
-  CMAKE_BUILD_TYPE: Release
-  OCCT_VERSION: 7.8.1
-
 jobs:
   build-linux:
     name: Build IfcOpenShell (Linux, Python 3.14)
     runs-on: ubuntu-latest
     container:
-      image: python:3.14-slim
+      image: python:3.14.0-slim-trixie
 
     permissions:
       contents: write
@@ -24,62 +20,49 @@ jobs:
     steps:
       - name: Install dependencies
         run: |
-          apt-get update
-          apt-get install -y \
-            git cmake g++ make swig python3-dev unzip wget ninja-build \
-            tcl-dev tk-dev libfreetype6-dev libx11-dev libxt-dev \
-            libxmu-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev freeglut3-dev \
-            libcgal-dev libcgal-qt6-dev \
-            libboost-dev libboost-regex-dev libboost-filesystem-dev \
-            libboost-system-dev libboost-thread-dev libboost-program-options-dev \
-            libxml2-dev libhdf5-dev libtbb-dev libeigen3-dev \
-            zlib1g-dev libssl-dev librocksdb-dev libzstd-dev
-          python -m pip install --upgrade pip setuptools wheel build numpy
+          pip install requests build && \
+          apt update -y && \
+          apt install -y git \
+              cmake \
+              automake \
+              autoconf \
+              build-essential \
+              bison \
+              ninja-build
 
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      - name: Download prebuilt OCCT from GitHub Release
+      - name: Setup for build script
         run: |
-          mkdir -p /tmp
-          wget -q https://github.com/${{ github.repository }}/releases/download/${OCCT_VERSION}/occt-${OCCT_VERSION}-linux64.tar.gz -O /tmp/occt-${OCCT_VERSION}-linux64.tar.gz
-          tar -xzf /tmp/occt-${OCCT_VERSION}-linux64.tar.gz -C /usr/local
-          echo "/usr/local/occt/lib" >> /etc/ld.so.conf.d/occt.conf
-          ldconfig
-          ls /usr/local/occt/lib || true
+          cd src/ifcopenshell-python && \
+          mkdir -p build && \
+          cp -r ifcopenshell build/ && \
+          cp ../../README.md build/ && \
+          cp pyproject.toml build/
 
       - name: Build IfcOpenShell C++ core and Python module
         run: |
-          mkdir -p build
-          cd build
-          cmake ../cmake \
-            -G Ninja \
-            -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} \
-            -DOCC_INCLUDE_DIR=/usr/local/occt/include/opencascade \
-            -DOCC_LIBRARY_DIR=/usr/local/occt/lib \
-            -DPYTHON_EXECUTABLE=$(which python3) \
-            -DCOLLADA_SUPPORT=OFF \
-            -DIFCOPENSHELL_WITH_PYTHON=ON
-          ninja -j$(nproc)
-          cd ..
+          cd nix && \
+          python build-ifcopenshell.py
 
           # Copy compiled wrapper into Python package
-          cp build/ifcopenshell-python/ifcopenshell/_ifcopenshell_wrapper*.so src/ifcopenshell-python/ifcopenshell/ || true
+          cp /usr/local/lib/python3.14/site-packages/ifcopenshell/*ifcopenshell_wrapper* src/ifcopenshell-python/build/ifcopenshell/
 
           # Build Python wheel
-          cd src/ifcopenshell-python
+          cd src/ifcopenshell-python/build
           python -m build
 
       - name: Show build output
-        run: ls -lh src/ifcopenshell-python/dist
+        run: ls -lh src/ifcopenshell-python/build/dist
 
       - name: Upload .whl to GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: src/ifcopenshell-python/dist/*.whl
+          files: src/ifcopenshell-python/build/dist/*.whl
           generate_release_notes: true
           make_latest: true
         env:
