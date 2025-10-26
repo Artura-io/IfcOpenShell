@@ -406,7 +406,7 @@ def build_dependency(
     build_tool_args: "list[str]",
     download_url: str,
     download_name: str,
-    download_tool: Literal["py", "git"] = download_tool_default,
+    download_tool: Literal["py", "git", "local"] = download_tool_default,
     revision: "Union[str, None]" = None,
     patch: "Union[str, list[str], None]" = None,
     shell=None,
@@ -465,6 +465,9 @@ def build_dependency(
             target_dir=os.path.join(build_dir, download_name),
             revision=revision,
         )
+    elif download_tool == "local":
+        logger.info(f"Copying local file {download_name}")
+        shutil.copyfile(os.path.join(download_url, download_name), os.path.join(build_dir, download_name))
     else:
         raise ValueError(f"download tool '{download_tool}' is not supported")
     download_dir = os.path.join(build_dir, download_name)
@@ -908,7 +911,8 @@ if "cgal" in targets:
         name=f"gmp-{GMP_VERSION}",
         mode="autoconf",
         build_tool_args=[ENABLE_FLAG, DISABLE_FLAG, "--with-pic", *gmp_args],
-        download_url="https://ftp.gnu.org/gnu/gmp/",
+        download_tool="local",
+        download_url=f"{os.path.dirname(os.path.abspath(__file__))}/../provision/src/gmp/",
         download_name=f"gmp-{GMP_VERSION}.tar.bz2",
     )
 
