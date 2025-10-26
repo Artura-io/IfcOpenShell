@@ -1,0 +1,61 @@
+FROM python:3.14.0-slim-trixie AS builder
+
+RUN echo "deb http://www.deb-multimedia.org trixie main" > /etc/apt/sources.list.d/multimedia.list && \
+    apt-get update -y -oAcquire::AllowInsecureRepositories=true && \
+    apt-get install -y --allow-unauthenticated deb-multimedia-keyring
+
+RUN apt update && \
+    apt install -y git \
+    ninja-build \
+    cmake \
+    gcc \
+    g++ \
+    libboost-all-dev \
+    libcgal-dev \
+    libocct-data-exchange-dev \
+    libocct-draw-dev \
+    libocct-foundation-dev \
+    libocct-modeling-algorithms-dev \
+    libocct-modeling-data-dev \
+    libocct-ocaf-dev \
+    libocct-visualization-dev \
+    libpcre3-dev \
+    libxml2-dev \
+    swig \
+    libhdf5-dev \
+    libaec-dev \
+    zlib1g-dev \
+    libeigen3-dev \
+    libgltf-dev \
+    gettext
+RUN cd /opt && \
+    git clone https://github.com/KhronosGroup/OpenCOLLADA.git && \
+    cd OpenCOLLADA/ && \
+    git checkout 064a60b65c2c31b94f013820856bc84fb1937cc6 && \
+    sed -i '1i SET(CMAKE_POSITION_INDEPENDENT_CODE ON)' CMakeLists.txt && \
+    mkdir build && cd build && \
+    cmake -G Ninja .. && \
+    ninja && \
+    ninja install
+COPY ./ /data
+RUN cd /data && \
+    mkdir build && cd build && \
+    cmake -G Ninja ../cmake  -DUSE_MMAP=On      -DOCC_LIBRARY_DIR=/usr/lib/x86_64-linux-gnu/       -DOCC_INCLUDE_DIR=/usr/include/opencascade       -DCOLLADA_SUPPORT=On       -DOPENCOLLADA_INCLUDE_DIR="/usr/local/include/opencollada"       -DOPENCOLLADA_LIBRARY_DIR="/usr/local/lib/opencollada"        -DPCRE_LIBRARY_DIR=/usr/lib/x86_64-linux-gnu/       -DHDF5_SUPPORT=On       -DHDF5_LIBRARIES="/usr/lib/x86_64-linux-gnu/hdf5/serial/libhdf5_cpp.so;/usr/lib/x86_64-linux-gnu/hdf5/serial/libhdf5.so;/usr/lib/x86_64-linux-gnu/libz.so;/usr/lib/x86_64-linux-gnu/libsz.so;/usr/lib/x86_64-linux-gnu/libaec.so"       -DHDF5_INCLUDE_DIR="/usr/include/hdf5/"       -DGMP_INCLUDE_DIR=/usr/include       -DMPFR_INCLUDE_DIR=/usr/include       -DGMP_LIBRARY_DIR=/usr/lib/x86_64-linux-gnu       -DMPFR_LIBRARY_DIR=/usr/lib/x86_64-linux-gnu       -DJSON_INCLUDE_DIR=/usr/include       -DEIGEN_DIR=/usr/include/eigen3 && \
+    ninja && \
+    ninja install
+
+ENV VERSION 0.8.4
+
+RUN cd /data/src/ifcopenshell-python && \
+    mkdir -p build && \
+    cp -r ifcopenshell build/ && \
+    cp -r /data/build/ifcwrap/*ifcopenshell_wrapper* build/ifcopenshell/ && \
+    cp ../../README.md build/ && \
+    cp pyproject.toml build/ && \
+    cd build && python -m venv env && . env/bin/activate && python -m pip install build && \
+    python -m build && \
+    mv dist/ifcopenshell-*.whl /ifcopenshell-$VERSION-py314-none-any.whl
+
+FROM scratch AS artifacts
+
+COPY --from=builder /ifcopenshell* /

@@ -1,0 +1,29 @@
+FROM python:3.14.0-slim-trixie AS builder
+
+RUN pip install requests build && \
+    apt update -y && \
+    apt install -y git \
+        cmake \
+        automake \
+        autoconf \
+        build-essential \
+        bison \
+        ninja-build
+
+COPY ./ /data
+
+RUN cd /data/src/ifcopenshell-python && \
+    mkdir -p build && \
+    cp -r ifcopenshell build/ && \
+    cp ../../README.md build/ && \
+    cp pyproject.toml build/
+RUN cd /data/nix && \
+    python build-ifcopenshell.py
+RUN cp /usr/local/lib/python3.14/site-packages/ifcopenshell/*ifcopenshell_wrapper* /data/src/ifcopenshell-python/build/ifcopenshell/
+RUN cd /data/src/ifcopenshell-python/build/ && \
+    python -m build && \
+    mv dist/ifcopenshell-*.whl /
+
+FROM scratch AS artifacts
+
+COPY --from=builder /ifcopenshell* /

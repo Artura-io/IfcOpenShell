@@ -385,5 +385,5 @@ def convert_path_to_rocksdb(ifcspf_path: Union[Path, str], rocksdb_path: Union[P
 
 
 version_core = ifcopenshell_wrapper.version()
-__version__ = version = "0.0.0"
+__version__ = version = "0.8.4"
 get_log = ifcopenshell_wrapper.get_log
