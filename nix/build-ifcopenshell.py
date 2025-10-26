@@ -908,7 +908,7 @@ if "cgal" in targets:
         name=f"gmp-{GMP_VERSION}",
         mode="autoconf",
         build_tool_args=[ENABLE_FLAG, DISABLE_FLAG, "--with-pic", *gmp_args],
-        download_url="https://gmplib.org/download/gmp/",
+        download_url="https://ftp.gnu.org/gnu/gmp/",
         download_name=f"gmp-{GMP_VERSION}.tar.bz2",
     )
 
