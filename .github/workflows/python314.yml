@@ -46,7 +46,8 @@ jobs:
       - name: Build IfcOpenShell C++ core and Python module
         run: |
           cd nix && \
-          python build-ifcopenshell.py
+          python build-ifcopenshell.py && \
+          cd ..
 
           # Copy compiled wrapper into Python package
           cp /usr/local/lib/python3.14/site-packages/ifcopenshell/*ifcopenshell_wrapper* src/ifcopenshell-python/build/ifcopenshell/
