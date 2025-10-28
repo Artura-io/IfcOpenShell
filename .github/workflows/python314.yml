@@ -68,3 +68,10 @@ jobs:
           make_latest: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Create artifact
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/upload-artifact@v4
+        with:
+          name: ifcopenshell-0.8.4-py3-none-any.whl
+          path: src/ifcopenshell-python/build/dist/ifcopenshell-0.8.4-py3-none-any.whl
