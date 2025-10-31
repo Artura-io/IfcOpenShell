@@ -88,7 +88,7 @@ strip = "strip"
 xz = "xz"  # Used implicitly for `tar -xf *.tar.xz`.
 brew = "brew"
 
-explicit_targets = ["IfcOpenShell-Python"]
+explicit_targets = ["IfcOpenShell-Python", "IfcConvert"]
 
 # Helper function for coloured printing
 
